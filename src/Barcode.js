@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import { RNCamera } from 'react-native-camera';
 
 class Barcode extends Component {
@@ -8,6 +8,7 @@ class Barcode extends Component {
     super(props);
     this.camera = null;
     this.barcodeCodes = null;
+    // this.getBarcode = this.props.getBarcode;
 
     this.state = {
       camera: {
@@ -18,8 +19,9 @@ class Barcode extends Component {
   }
 
   onBarCodeRead(scanResult) {
-    if (!(this.barcodeCodes === scanResult)) {
+    if (!(this.props.stopReadingBarcodeValue)) {
       console.log(scanResult.data)
+      this.props.barcodeInput(scanResult.data)
     }
     return;
   }
@@ -50,6 +52,7 @@ class Barcode extends Component {
           permissionDialogMessage={'We need your permission to use your camera phone'}
           style={styles.preview}
           type={this.state.camera.type}
+          captureAudio={false}
         />
         <View style={[styles.overlay, styles.topOverlay]}>
           <Text style={styles.scanScreenMessage}>Please scan the barcode.</Text>
@@ -68,7 +71,7 @@ const styles = {
   preview: {
     flex: 1,
     justifyContent: 'flex-end',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   overlay: {
     position: 'absolute',
