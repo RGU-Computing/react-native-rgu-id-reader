@@ -1,111 +1,101 @@
-import React, { Component } from 'react';
-import { View, Text } from 'react-native';
-import { RNCamera } from 'react-native-camera';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, Alert, StyleSheet } from 'react-native';
+import { Camera, useCameraDevices } from 'react-native-vision-camera';
 
-class Barcode extends Component {
+const Barcode = (props) => {
+  const cameraRef = useRef(null); // Ref for camera
+  const [cameraPermission, setCameraPermission] = useState(null); // State for camera permissions
+  const devices = useCameraDevices(); // Get available camera devices
+  const device = devices.back; // Choose back camera
 
-  constructor(props) {
-    super(props);
-    this.camera = null;
-    this.barcodeCodes = null;
-    // this.getBarcode = this.props.getBarcode;
+  useEffect(() => {
+    // Request camera permission when the component mounts
+    (async () => {
+      const status = await Camera.requestCameraPermission();
+      setCameraPermission(status === 'authorized');
+    })();
+  }, []);
 
-    this.state = {
-      camera: {
-        type: RNCamera.Constants.Type.back,
-        flashMode: RNCamera.Constants.FlashMode.auto,
-      }
-    };
-  }
-
-  onBarCodeRead(scanResult) {
-    if (!(this.props.stopReadingBarcodeValue)) {
-      console.log(scanResult.data)
-      this.props.barcodeInput(scanResult.data)
+  // Function to handle barcode reading
+  const onBarCodeRead = (barcode) => {
+    if (!(props.stopReadingBarcodeValue)) {
+      console.log(barcode);
+      props.barcodeInput(barcode);
     }
-    return;
-  }
+  };
 
-  async takePicture() {
-    if (this.camera) {
+  // Function to handle taking a picture
+  const takePicture = async () => {
+    if (cameraRef.current) {
       const options = { quality: 0.5, base64: true };
-      const data = await this.camera.takePictureAsync(options);
+      const data = await cameraRef.current.takePhoto(options);
       Alert.alert(data.uri);
     }
-  }
+  };
 
+  // Check if camera is ready
+  if (device == null) return <Text>Loading...</Text>;
+  if (cameraPermission === null) return <Text>Requesting camera permissions...</Text>;
+  if (cameraPermission === false) return <Text>Camera permission denied.</Text>;
 
-  render() {
-    return (
-      <View style={styles.container}>
-        <RNCamera
-          ref={ref => {
-            this.camera = ref;
-          }}
-          defaultTouchToFocus
-          flashMode={this.state.camera.flashMode}
-          mirrorImage={false}
-          onBarCodeRead={this.onBarCodeRead.bind(this)}
-          onFocusChanged={() => { }}
-          onZoomChanged={() => { }}
-          permissionDialogTitle={'Permission to use camera'}
-          permissionDialogMessage={'We need your permission to use your camera phone'}
-          style={styles.preview}
-          type={this.state.camera.type}
-          captureAudio={false}
-        />
-        <View style={[styles.overlay, styles.topOverlay]}>
-          <Text style={styles.scanScreenMessage}>Please scan the barcode.</Text>
-        </View>
-        <View style={[styles.overlay, styles.bottomOverlay]}>
-        </View>
+  return (
+    <View style={styles.container}>
+      <Camera
+        ref={cameraRef}
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive={true}
+        torch={false} // or 'on' if you want flash mode
+        onFrameProcessor={onBarCodeRead} // Frame processor used for barcode scanning
+        frameProcessorFps={5} // Frame processor FPS
+        audio={false} // Disable audio capturing
+      />
+      <View style={[styles.overlay, styles.topOverlay]}>
+        <Text style={styles.scanScreenMessage}>Please scan the barcode.</Text>
       </View>
-    );
-  }
-}
+      <View style={[styles.overlay, styles.bottomOverlay]} />
+    </View>
+  );
+};
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   preview: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    width: '100%',
+    height: '100%',
   },
   overlay: {
     position: 'absolute',
     padding: 16,
     right: 0,
     left: 0,
-    alignItems: 'center'
+    alignItems: 'center',
   },
   topOverlay: {
     top: 0,
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   bottomOverlay: {
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.4)',
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center'
-  },
-  enterBarcodeManualButton: {
-    padding: 15,
-    backgroundColor: 'white',
-    borderRadius: 40
+    alignItems: 'center',
   },
   scanScreenMessage: {
     fontSize: 14,
     color: 'white',
     textAlign: 'center',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
-};
+});
 
 export default Barcode;
